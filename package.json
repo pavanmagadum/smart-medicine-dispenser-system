@@ -1,0 +1,12 @@
+{
+  "name": "smart-medicine-dispenser-system",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm --prefix frontend run build"
+  }
+}

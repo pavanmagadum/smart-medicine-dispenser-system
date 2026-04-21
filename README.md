@@ -226,63 +226,58 @@ Use sample-data/sample-data.json for development seeding and UI testing.
 - Add audit logs and backup/retention policies
 - Add unit/integration tests before release
 
-## Deploy (Vercel + Render)
+## Deploy (Single Vercel Project)
 
-Recommended deployment split for this project:
-- Frontend (React/Vite): Vercel
-- Backend (Express API): Render Web Service
+This repository is configured to deploy frontend and backend together in one Vercel project:
+- Frontend build output: `frontend/dist`
+- Backend API: Vercel Function at `api/[...path].js` serving Express routes from `backend/src/app.js`
 
-### 1) Deploy Backend on Render
+### 1) Create Vercel Project
 
-This repo includes `render.yaml` for quick setup.
+1. Push latest changes to GitHub.
+2. In Vercel, import this repository.
+3. Keep root directory as project root.
+4. Vercel uses root `vercel.json` to build frontend and route `/api/*` to backend.
 
-1. Push the repository to GitHub.
-2. In Render, create a new Blueprint service from the repository.
-3. Render will detect `render.yaml` and create the web service from `backend/`.
-4. In Render service environment variables, set:
+### 2) Add Environment Variables in Vercel
 
-- `FIREBASE_WEB_API_KEY`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
-- `FRONTEND_URLS`
+Add both frontend and backend variables in Vercel Project Settings > Environment Variables.
 
-Use `FRONTEND_URLS` as comma-separated URLs for CORS, for example:
+Frontend variables:
 
-```text
-https://your-app.vercel.app,https://your-preview.vercel.app
-```
-
-After deploy, verify:
-
-```text
-https://<your-render-service>.onrender.com/health
-```
-
-### 2) Deploy Frontend on Vercel
-
-This repo includes `frontend/vercel.json` with SPA rewrites.
-
-1. In Vercel, import the GitHub repository.
-2. Set Root Directory to `frontend`.
-3. Build settings:
-  - Install Command: `npm ci`
-  - Build Command: `npm run build`
-  - Output Directory: `dist`
-4. Add environment variables in Vercel project settings:
-
-- `VITE_API_BASE_URL=https://<your-render-service>.onrender.com/api`
+- `VITE_API_BASE_URL=/api`
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
 - `VITE_FIREBASE_PROJECT_ID`
 - `VITE_FIREBASE_STORAGE_BUCKET`
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID` (optional)
 
-5. Redeploy frontend after saving env variables.
+Backend variables:
 
-### 3) Final Wiring Checklist
+- `FIREBASE_WEB_API_KEY`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
+- `FRONTEND_URLS` (optional, comma-separated allowlist)
 
-1. Add your final Vercel domain(s) to backend `FRONTEND_URLS` on Render.
-2. Confirm frontend calls the Render API URL from `VITE_API_BASE_URL`.
-3. Test login, dashboard load, medicine CRUD, and schedule endpoints.
+If you set `FRONTEND_URLS`, use your Vercel URL(s), for example:
+
+```text
+https://your-app.vercel.app,https://your-app-git-main-username.vercel.app
+```
+
+### 3) Deploy and Verify
+
+1. Click Deploy in Vercel.
+2. Verify backend endpoint:
+
+```text
+https://<your-vercel-domain>/api/health
+```
+
+### 4) Final Wiring Checklist
+
+1. Confirm frontend requests are sent to `/api`.
+2. Test login, dashboard load, medicine CRUD, and schedule endpoints.
