@@ -1,0 +1,94 @@
+{
+  "users": [
+    {
+      "userId": "elderly_user_01",
+      "name": "Joseph Martin",
+      "email": "joseph@example.com",
+      "role": "elderly",
+      "linkedDeviceId": "esp32_box_01"
+    },
+    {
+      "userId": "caretaker_01",
+      "name": "Mia Thomas",
+      "email": "mia@example.com",
+      "role": "caretaker",
+      "linkedUsers": ["elderly_user_01"]
+    }
+  ],
+  "devices": [
+    {
+      "deviceId": "esp32_box_01",
+      "userId": "elderly_user_01",
+      "status": "online",
+      "lastSync": "2026-04-15T08:10:00Z"
+    }
+  ],
+  "medicines": [
+    {
+      "medicineId": "med_01",
+      "userId": "elderly_user_01",
+      "name": "Metformin",
+      "slotNumber": 1,
+      "totalQuantity": 60,
+      "remainingQuantity": 22,
+      "lowThreshold": 10
+    },
+    {
+      "medicineId": "med_02",
+      "userId": "elderly_user_01",
+      "name": "Vitamin D",
+      "slotNumber": 2,
+      "totalQuantity": 30,
+      "remainingQuantity": 8,
+      "lowThreshold": 7
+    }
+  ],
+  "schedules": [
+    {
+      "scheduleId": "sch_01",
+      "userId": "elderly_user_01",
+      "medicineId": "med_01",
+      "times": ["08:00", "20:00"],
+      "frequency": "daily"
+    },
+    {
+      "scheduleId": "sch_02",
+      "userId": "elderly_user_01",
+      "medicineId": "med_02",
+      "times": ["14:00"],
+      "frequency": "daily"
+    }
+  ],
+  "logs": [
+    {
+      "logId": "log_01",
+      "medicineId": "med_01",
+      "medicineName": "Metformin",
+      "scheduledTime": "08:00",
+      "actualTime": "2026-04-15T08:01:10Z",
+      "status": "taken"
+    },
+    {
+      "logId": "log_02",
+      "medicineId": "med_02",
+      "medicineName": "Vitamin D",
+      "scheduledTime": "14:00",
+      "actualTime": null,
+      "status": "missed"
+    }
+  ],
+  "notifications": [
+    {
+      "notificationId": "ntf_01",
+      "type": "medicine-reminder",
+      "message": "Time to take Metformin.",
+      "status": "unread"
+    },
+    {
+      "notificationId": "ntf_02",
+      "type": "low-stock",
+      "message": "Vitamin D is low in stock.",
+      "status": "unread"
+    }
+  ]
+}
