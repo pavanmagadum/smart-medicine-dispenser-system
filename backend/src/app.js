@@ -3,6 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import "./config/firebaseAdmin.js";
 
 import authRoutes from "./routes/authRoutes.js";
@@ -13,7 +15,10 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import deviceRoutes from "./routes/deviceRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const app = express();
 
