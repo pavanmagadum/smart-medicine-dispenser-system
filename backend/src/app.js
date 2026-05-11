@@ -30,12 +30,23 @@ const allowedOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL ||
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests when no explicit allowlist is configured.
-      if (!allowedOrigins.length || !origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
         return callback(null, true);
       }
 
-      return callback(new Error("CORS origin not allowed"));
+      const isAllowed = allowedOrigins.includes(origin) || 
+                        allowedOrigins.includes(origin + '/') || // handle trailing slash just in case
+                        origin.includes('localhost') || // always allow localhost for dev
+                        origin.includes('.vercel.app'); // temporarily allow all vercel preview deployments
+
+      if (isAllowed) {
+        return callback(null, true);
+      }
+
+      console.error(`[CORS Error] Origin not allowed: ${origin}`);
+      console.error(`[CORS Error] Allowed Origins configured as:`, allowedOrigins);
+      return callback(new Error(`CORS origin not allowed: ${origin}`));
     },
     credentials: true,
   })
