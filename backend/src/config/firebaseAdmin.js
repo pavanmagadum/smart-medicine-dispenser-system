@@ -4,9 +4,9 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dotEnvPath = path.resolve(__dirname, "../../.env");
+const currentFile = fileURLToPath(import.meta.url);
+const currentDir = path.dirname(currentFile);
+const dotEnvPath = path.resolve(currentDir, "../../.env");
 
 dotenv.config({ path: dotEnvPath });
 
@@ -16,7 +16,7 @@ const privateKey = process.env.FIREBASE_PRIVATE_KEY
 
 const resolveServiceAccountFromFile = () => {
   const relativePath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || "../../serviceAccountKey.json";
-  const absolutePath = path.resolve(__dirname, relativePath);
+  const absolutePath = path.resolve(currentDir, relativePath);
 
   if (!fs.existsSync(absolutePath)) {
     return null;
