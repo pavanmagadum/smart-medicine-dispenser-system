@@ -14,9 +14,6 @@ const privateKey = process.env.FIREBASE_PRIVATE_KEY
   ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
   : undefined;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const resolveServiceAccountFromFile = () => {
   const relativePath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || "../../serviceAccountKey.json";
   const absolutePath = path.resolve(__dirname, relativePath);
