@@ -1,7 +1,9 @@
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import DashboardPage from "./pages/DashboardPage";
-import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./context/AuthContext";
+
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
 
 function ProtectedRoute({ children }) {
   const { authUser, loading } = useAuth();
@@ -23,17 +25,19 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<div className="min-h-screen grid place-items-center bg-medical-50 text-medical-900">Loading application...</div>}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }

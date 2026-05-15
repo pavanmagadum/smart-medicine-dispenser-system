@@ -22,9 +22,9 @@ body {
 }
 
 .button-primary {
-  @apply rounded-xl bg-medical-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-medical-700;
+  @apply rounded-xl bg-medical-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-medical-700 active:bg-medical-900 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed;
 }
 
 .button-secondary {
-  @apply rounded-xl border border-medical-300 px-4 py-2 text-sm font-semibold text-medical-700 transition hover:bg-medical-50;
+  @apply rounded-xl border border-medical-300 px-4 py-2 text-sm font-semibold text-medical-700 transition hover:bg-medical-50 active:bg-medical-100 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed;
 }

@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { Clock3, Bell, AlertTriangle, PillBottle } from "lucide-react";
 
-export default function SummaryCards({ summary }) {
+function SummaryCards({ summary }) {
   const cards = [
     {
       label: "Next Medicine",
@@ -41,3 +42,5 @@ export default function SummaryCards({ summary }) {
     </div>
   );
 }
+
+export default memo(SummaryCards);

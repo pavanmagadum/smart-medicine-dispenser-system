@@ -1,4 +1,6 @@
-export default function NotificationPanel({ notifications, onMarkRead, markingReadIds = [] }) {
+import { memo } from "react";
+
+function NotificationPanel({ notifications, onMarkRead, markingReadIds = [] }) {
   const unreadCount = notifications.filter((item) => item.status !== "read").length;
 
   return (
@@ -23,7 +25,7 @@ export default function NotificationPanel({ notifications, onMarkRead, markingRe
               </div>
               {notification.status !== "read" && (
                 <button
-                  className="rounded-xl bg-white px-3 py-1 text-xs font-semibold text-medical-700 hover:bg-medical-100"
+                  className="rounded-xl bg-white px-3 py-1 text-xs font-semibold text-medical-700 hover:bg-medical-100 active:scale-95 transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={markingReadIds.includes(notification.notificationId || notification.id)}
                   onClick={() => onMarkRead(notification.notificationId || notification.id)}
                 >
@@ -38,3 +40,5 @@ export default function NotificationPanel({ notifications, onMarkRead, markingRe
     </section>
   );
 }
+
+export default memo(NotificationPanel);

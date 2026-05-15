@@ -37,7 +37,10 @@ router.post("/signup", async (req, res) => {
       profile,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Signup failed", error: error.message });
+    if (error.code && error.code.startsWith('auth/')) {
+      return res.status(400).json({ message: "Signup failed", error: error.message });
+    }
+    return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 });
 

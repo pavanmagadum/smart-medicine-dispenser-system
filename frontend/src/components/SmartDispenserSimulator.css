@@ -102,6 +102,10 @@
   transform: translateY(-1px);
 }
 
+.sim-chip:active {
+  transform: scale(0.95);
+}
+
 .sim-chip.is-on {
   border-color: rgba(34, 197, 94, 0.8);
   color: #dcfce7;
@@ -422,6 +426,10 @@
   transform: translateY(-1px);
 }
 
+.sim-dispense-button:active {
+  transform: scale(0.95);
+}
+
 .sim-dispense-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -463,6 +471,11 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  transition: transform 180ms ease;
+}
+
+.sim-action:active {
+  transform: scale(0.95);
 }
 
 .sim-action:disabled {

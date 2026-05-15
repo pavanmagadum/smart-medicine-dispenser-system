@@ -1,4 +1,6 @@
-export default function LogsTable({ logs }) {
+import { memo } from "react";
+
+function LogsTable({ logs = [] }) {
   return (
     <section className="card p-4">
       <h3 className="text-lg font-semibold text-medical-900">Dispensing History</h3>
@@ -42,3 +44,5 @@ export default function LogsTable({ logs }) {
     </section>
   );
 }
+
+export default memo(LogsTable);

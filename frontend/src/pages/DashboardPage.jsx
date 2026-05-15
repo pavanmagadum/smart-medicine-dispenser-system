@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { MoreVertical } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import SummaryCards from "../components/SummaryCards";
 import SlotStatusGrid from "../components/SlotStatusGrid";
@@ -15,6 +16,7 @@ import { dashboardApi, logApi, medicineApi, notificationApi, scheduleApi } from 
 export default function DashboardPage() {
   const { profile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [summary, setSummary] = useState(null);
   const [targetUserId, setTargetUserId] = useState("");
 
@@ -36,7 +38,7 @@ export default function DashboardPage() {
   const [markingReadIds, setMarkingReadIds] = useState([]);
   const [optimisticReadIds, setOptimisticReadIds] = useState([]);
 
-  const refreshDashboard = async () => {
+  const refreshDashboard = useCallback(async () => {
     if (!selectedUserId) {
       return;
     }
@@ -63,7 +65,7 @@ export default function DashboardPage() {
     if (logsRes.status === "fulfilled") {
       setLogs(logsRes.value.data.logs || []);
     }
-  };
+  }, [selectedUserId]);
 
   const displayLogs = realtimeLogs.length > 0 ? realtimeLogs : logs;
 
@@ -87,24 +89,24 @@ export default function DashboardPage() {
 
   useEffect(() => {
     refreshDashboard();
-  }, [selectedUserId]);
+  }, [selectedUserId, refreshDashboard]);
 
-  const handleAddMedicine = async (payload) => {
+  const handleAddMedicine = useCallback(async (payload) => {
     await medicineApi.addMedicine({ ...payload, targetUserId: selectedUserId });
     await refreshDashboard();
-  };
+  }, [selectedUserId, refreshDashboard]);
 
-  const handleDeleteMedicine = async (medicineId) => {
+  const handleDeleteMedicine = useCallback(async (medicineId) => {
     await medicineApi.deleteMedicine(medicineId);
     await refreshDashboard();
-  };
+  }, [refreshDashboard]);
 
-  const handleUpdateMedicine = async (medicineId, payload) => {
+  const handleUpdateMedicine = useCallback(async (medicineId, payload) => {
     await medicineApi.updateMedicine(medicineId, payload);
     await refreshDashboard();
-  };
+  }, [refreshDashboard]);
 
-  const handleDispense = async (medicineId, medicineName) => {
+  const handleDispense = useCallback(async (medicineId, medicineName) => {
     await medicineApi.updateStatus(medicineId, { status: "taken", medicineName });
     await logApi.updateStatus({
       targetUserId: selectedUserId,
@@ -114,19 +116,19 @@ export default function DashboardPage() {
       actualTime: new Date().toISOString(),
     });
     await refreshDashboard();
-  };
+  }, [selectedUserId, refreshDashboard]);
 
-  const handleCreateSchedule = async (payload) => {
+  const handleCreateSchedule = useCallback(async (payload) => {
     await scheduleApi.createSchedule({ ...payload, targetUserId: selectedUserId });
     await refreshDashboard();
-  };
+  }, [selectedUserId, refreshDashboard]);
 
-  const handleDeleteSchedule = async (scheduleId) => {
+  const handleDeleteSchedule = useCallback(async (scheduleId) => {
     await scheduleApi.deleteSchedule(scheduleId);
     await refreshDashboard();
-  };
+  }, [refreshDashboard]);
 
-  const handleMarkRead = async (notificationId) => {
+  const handleMarkRead = useCallback(async (notificationId) => {
     setMarkingReadIds((prev) => [...prev, notificationId]);
     setOptimisticReadIds((prev) => [...prev, notificationId]);
 
@@ -137,7 +139,7 @@ export default function DashboardPage() {
     } finally {
       setMarkingReadIds((prev) => prev.filter((id) => id !== notificationId));
     }
-  };
+  }, []);
 
   return (
     <main className="h-screen overflow-hidden p-4 md:p-6">
@@ -148,14 +150,24 @@ export default function DashboardPage() {
           onLogout={logout}
           profile={profile}
           unreadCount={unreadNotificationCount}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
 
         <section className="h-full min-h-0 space-y-4 overflow-y-auto pr-1">
           <header className="card p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-bold text-medical-900">Care Dashboard</h2>
-                <p className="text-sm text-medical-700">Live medicine schedules, slot inventory, and adherence updates.</p>
+              <div className="flex items-center gap-3">
+                <button 
+                  className="rounded-lg p-2 text-medical-700 hover:bg-medical-100 lg:hidden active:scale-95 transition"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <MoreVertical size={24} />
+                </button>
+                <div>
+                  <h2 className="text-2xl font-bold text-medical-900">Care Dashboard</h2>
+                  <p className="text-sm text-medical-700 hidden sm:block">Live medicine schedules, slot inventory, and adherence updates.</p>
+                </div>
               </div>
 
               {profile?.role === "caretaker" && (
@@ -169,10 +181,11 @@ export default function DashboardPage() {
             </div>
           </header>
 
-          {activeTab !== "simulator" && (
+          {activeTab === "overview" && (
             <>
               <SummaryCards summary={summary} />
               <SlotStatusGrid slotStatus={summary?.slotStatus || []} />
+              <LogsTable logs={displayLogs} />
             </>
           )}
 
@@ -180,7 +193,7 @@ export default function DashboardPage() {
             <SmartDispenserSimulator dashboardSchedules={schedules} medicines={medicines} onDispenseMedicine={handleDispense} />
           )}
 
-          {(activeTab === "overview" || activeTab === "medicines") && (
+          {activeTab === "medicines" && (
             <>
               <MedicineForm onSubmit={handleAddMedicine} />
               <MedicineTable
@@ -193,7 +206,7 @@ export default function DashboardPage() {
             </>
           )}
 
-          {(activeTab === "overview" || activeTab === "schedules") && (
+          {activeTab === "schedules" && (
             <>
               <ScheduleForm medicines={medicines} onSubmit={handleCreateSchedule} />
               <section className="card p-4">
@@ -213,7 +226,7 @@ export default function DashboardPage() {
                       </p>
                       <div className="mt-2">
                         <button
-                          className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                          className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 active:scale-95 active:bg-red-100 disabled:opacity-70 disabled:cursor-not-allowed"
                           onClick={() => handleDeleteSchedule(schedule.scheduleId)}
                         >
                           Delete Schedule
@@ -227,11 +240,9 @@ export default function DashboardPage() {
             </>
           )}
 
-          {(activeTab === "overview" || activeTab === "alerts") && (
+          {activeTab === "alerts" && (
             <NotificationPanel notifications={displayNotifications} onMarkRead={handleMarkRead} markingReadIds={markingReadIds} />
           )}
-
-          {activeTab !== "simulator" && <LogsTable logs={displayLogs} />}
         </section>
       </div>
     </main>

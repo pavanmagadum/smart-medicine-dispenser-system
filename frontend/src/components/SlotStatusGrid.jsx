@@ -1,4 +1,6 @@
-export default function SlotStatusGrid({ slotStatus = [] }) {
+import { memo } from "react";
+
+function SlotStatusGrid({ slotStatus = [] }) {
   const colorByStatus = {
     ok: "bg-emerald-100 text-emerald-700",
     low: "bg-amber-100 text-amber-700",
@@ -23,3 +25,5 @@ export default function SlotStatusGrid({ slotStatus = [] }) {
     </section>
   );
 }
+
+export default memo(SlotStatusGrid);

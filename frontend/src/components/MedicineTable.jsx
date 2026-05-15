@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 
 function formatDateTime(value) {
   if (!value) {
@@ -13,7 +13,7 @@ function formatDateTime(value) {
   return date.toLocaleString();
 }
 
-export default function MedicineTable({ medicines, logs = [], onDelete, onDispense, onEdit }) {
+function MedicineTable({ medicines, logs = [], onDelete, onDispense, onEdit }) {
   const [editingId, setEditingId] = useState("");
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -185,7 +185,7 @@ export default function MedicineTable({ medicines, logs = [], onDelete, onDispen
                             Edit
                           </button>
                           <button
-                            className="rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            className="rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 active:scale-95 active:bg-red-100 disabled:opacity-70 disabled:cursor-not-allowed transition"
                             onClick={() => onDelete(medicine.medicineId)}
                           >
                             Delete
@@ -210,3 +210,5 @@ export default function MedicineTable({ medicines, logs = [], onDelete, onDispen
     </section>
   );
 }
+
+export default memo(MedicineTable);

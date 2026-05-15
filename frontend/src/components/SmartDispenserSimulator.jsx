@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BellRing, Battery, Power, Volume2, VolumeX, Pill, AlarmClock, CheckCircle2, XCircle, Clock3 } from "lucide-react";
 import { Chart } from "chart.js/auto";
 import "./SmartDispenserSimulator.css";
@@ -110,7 +110,7 @@ function getDefaultState() {
   };
 }
 
-export default function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDispenseMedicine }) {
+function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDispenseMedicine }) {
   const stored = useMemo(() => getStoredState() || getDefaultState(), []);
 
   const [deviceOn, setDeviceOn] = useState(stored.deviceOn);
@@ -130,8 +130,9 @@ export default function SmartDispenserSimulator({ dashboardSchedules = [], medic
   const [flashActive, setFlashActive] = useState(false);
 
   const [form, setForm] = useState({
+    medicineId: "",
     medicineName: "",
-    dosage: "",
+    frequency: "Daily",
     time: "",
   });
 
@@ -174,7 +175,9 @@ export default function SmartDispenserSimulator({ dashboardSchedules = [], medic
   }, [dashboardSchedules, medicineMap]);
 
   const isUsingDashboardSchedules = dashboardDerivedSchedules.length > 0;
-  const schedules = isUsingDashboardSchedules ? dashboardDerivedSchedules : localSchedules;
+  const schedules = useMemo(() => {
+    return [...dashboardDerivedSchedules, ...localSchedules].sort((a, b) => a.time.localeCompare(b.time));
+  }, [dashboardDerivedSchedules, localSchedules]);
 
   const holderSlots = useMemo(() => {
     const fromSchedules = schedules.reduce((acc, schedule) => {
@@ -735,23 +738,24 @@ export default function SmartDispenserSimulator({ dashboardSchedules = [], medic
   const handleAddSchedule = useCallback(
     (event) => {
       event.preventDefault();
-      if (!form.medicineName || !form.dosage || !form.time) {
+      if (!form.medicineName || !form.frequency || !form.time) {
         return;
       }
 
       const schedule = {
         id: `med-${Date.now()}`,
+        medicineId: form.medicineId,
         medicineName: form.medicineName.trim(),
-        dosage: form.dosage.trim(),
+        dosage: form.frequency,
         time: form.time,
         slotNumber: ((schedules.length % 4) + 1),
         createdAt: Date.now(),
       };
 
       setLocalSchedules((prev) => [...prev, schedule].sort((a, b) => a.time.localeCompare(b.time)));
-      setForm({ medicineName: "", dosage: "", time: "" });
+      setForm({ medicineId: "", medicineName: "", frequency: "Daily", time: "" });
     },
-    [form]
+    [form, schedules.length]
   );
 
   const handleDeleteSchedule = useCallback((id) => {
@@ -924,31 +928,46 @@ export default function SmartDispenserSimulator({ dashboardSchedules = [], medic
           <article className="sim-panel">
             <h4>Medicine Scheduler</h4>
             {isUsingDashboardSchedules && (
-              <p className="sim-empty">Using live schedules from Dashboard tab. Add or edit schedules there.</p>
+              <p className="sim-empty">Showing live schedules from Dashboard tab. You can also add local schedules below.</p>
             )}
             <form className="sim-form" onSubmit={handleAddSchedule}>
-              <input
+              <select
                 className="input"
-                placeholder="Medicine name"
-                value={form.medicineName}
-                onChange={(event) => setForm((prev) => ({ ...prev, medicineName: event.target.value }))}
-                disabled={isUsingDashboardSchedules}
-              />
-              <input
+                value={form.medicineId}
+                onChange={(event) => {
+                  const id = event.target.value;
+                  const medicine = medicines.find(m => m.medicineId === id);
+                  setForm(prev => ({
+                    ...prev,
+                    medicineId: id,
+                    medicineName: medicine ? medicine.name : ""
+                  }));
+                }}
+                required
+              >
+                <option value="">Select medicine</option>
+                {medicines.map((medicine) => (
+                  <option key={medicine.medicineId} value={medicine.medicineId}>
+                    {medicine.name}
+                  </option>
+                ))}
+              </select>
+              <select
                 className="input"
-                placeholder="Dosage (e.g., 1 tablet)"
-                value={form.dosage}
-                onChange={(event) => setForm((prev) => ({ ...prev, dosage: event.target.value }))}
-                disabled={isUsingDashboardSchedules}
-              />
+                value={form.frequency}
+                onChange={(event) => setForm((prev) => ({ ...prev, frequency: event.target.value }))}
+                required
+              >
+                <option value="Daily">Daily</option>
+                <option value="Today">Today Only</option>
+              </select>
               <input
                 className="input"
                 type="time"
                 value={form.time}
                 onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
-                disabled={isUsingDashboardSchedules}
               />
-              <button className="button-primary" type="submit" disabled={!deviceOn || isUsingDashboardSchedules}>
+              <button className="button-primary" type="submit" disabled={!deviceOn}>
                 <AlarmClock size={14} className="inline-block mr-1" /> Add Schedule
               </button>
             </form>
@@ -964,7 +983,7 @@ export default function SmartDispenserSimulator({ dashboardSchedules = [], medic
                   </div>
                   <div className="sim-schedule-item__right">
                     <span className={`status-pill status-${scheduleStateMap[schedule.id]}`}>{scheduleStateMap[schedule.id]}</span>
-                    {!isUsingDashboardSchedules && (
+                    {localSchedules.some(s => s.id === schedule.id) && (
                       <button className="sim-delete" onClick={() => handleDeleteSchedule(schedule.id)}>
                         Remove
                       </button>
@@ -1010,3 +1029,5 @@ export default function SmartDispenserSimulator({ dashboardSchedules = [], medic
     </section>
   );
 }
+
+export default memo(SmartDispenserSimulator);
