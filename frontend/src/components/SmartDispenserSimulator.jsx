@@ -110,7 +110,7 @@ function getDefaultState() {
   };
 }
 
-function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDispenseMedicine }) {
+function SmartDispenserSimulator({ dashboardSchedules = [], dashboardLogs = [], medicines = [], onDispenseMedicine }) {
   const stored = useMemo(() => getStoredState() || getDefaultState(), []);
 
   const [deviceOn, setDeviceOn] = useState(stored.deviceOn);
@@ -178,6 +178,67 @@ function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDi
   const schedules = useMemo(() => {
     return [...dashboardDerivedSchedules, ...localSchedules].sort((a, b) => a.time.localeCompare(b.time));
   }, [dashboardDerivedSchedules, localSchedules]);
+
+  // Sync cross-device dashboard logs into the local simulation history
+  useEffect(() => {
+    if (!dashboardLogs || dashboardLogs.length === 0) return;
+
+    setHistory(prevHistory => {
+      let changed = false;
+      const newHistory = [...prevHistory];
+
+      dashboardLogs.forEach(log => {
+        if (log.status !== "taken") return;
+        
+        const logDateKey = formatDateKey(new Date(log.actualTime || log.timestamp));
+        const logTimeMs = new Date(log.actualTime || log.timestamp).getTime();
+        
+        // Check if this log is already represented in history
+        const alreadyExists = newHistory.some(h => 
+          h.action === "taken" && 
+          h.dateKey === logDateKey && 
+          Math.abs(new Date(h.actualAt).getTime() - logTimeMs) < 60000 // Within 1 minute
+        );
+
+        if (!alreadyExists) {
+          // Find the best matching schedule for this log
+          const matchingSchedules = schedules.filter(s => s.medicineId === log.medicineId);
+          if (matchingSchedules.length > 0) {
+            // Pick the one closest to the log time
+            let bestSchedule = matchingSchedules[0];
+            let minDiff = Infinity;
+            
+            matchingSchedules.forEach(s => {
+              const sDate = parseScheduledDate(logDateKey, s.time);
+              if (sDate) {
+                const diff = Math.abs(sDate.getTime() - logTimeMs);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  bestSchedule = s;
+                }
+              }
+            });
+
+            newHistory.unshift({
+              id: `sync-${log.id || Date.now()}-${Math.random()}`,
+              scheduleId: bestSchedule.id,
+              medicineName: log.medicineName || bestSchedule.medicineName,
+              dosage: bestSchedule.dosage,
+              action: "taken",
+              scheduledFor: parseScheduledDate(logDateKey, bestSchedule.time)?.toISOString() || new Date(logTimeMs).toISOString(),
+              actualAt: new Date(logTimeMs).toISOString(),
+              dateKey: logDateKey
+            });
+            changed = true;
+          }
+        }
+      });
+
+      return changed ? newHistory : prevHistory;
+    });
+  }, [dashboardLogs, schedules]);
+
+
 
   const holderSlots = useMemo(() => {
     const fromSchedules = schedules.reduce((acc, schedule) => {
@@ -390,15 +451,12 @@ function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDi
   const triggerDispenseAnimation = useCallback(() => {
     setSlotOpen(true);
     setPillDropTick((prev) => prev + 1);
-    if (activeAlert && !activeAlert.isTest) {
-      setDispenseArmed(true);
-      setSlotReady(true);
-    }
+    setSlotReady(true);
 
     setTimeout(() => {
       setSlotOpen(false);
     }, 1300);
-  }, [activeAlert]);
+  }, []);
 
   useEffect(() => {
     if (!activeAlert || activeAlert.isTest) {
@@ -506,18 +564,20 @@ function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDi
     setHistory((prev) => [entry, ...prev]);
   }, []);
 
-  const handleTaken = useCallback(async () => {
-    if (!activeAlert) {
+  const handleDispenseAndTake = useCallback(async () => {
+    if (!activeAlert || confirmingTaken) {
       return;
     }
 
-    if (!activeAlert.isTest && !dispenseArmed) {
-      return;
+    if (!activeAlert.isTest && activeAlert.schedule.medicineId) {
+      const targetMedicine = medicines.find((m) => m.medicineId === activeAlert.schedule.medicineId);
+      if (targetMedicine && targetMedicine.remainingQuantity <= 0) {
+        alert(`Cannot dispense ${activeAlert.schedule.medicineName}. The slot is currently empty!`);
+        return;
+      }
     }
 
-    if (confirmingTaken) {
-      return;
-    }
+    triggerDispenseAnimation();
 
     if (!activeAlert.isTest && activeAlert.schedule.medicineId && typeof onDispenseMedicine === "function") {
       try {
@@ -537,7 +597,7 @@ function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDi
     setDispenseArmed(false);
     setSlotReady(false);
     setActiveAlert(null);
-  }, [activeAlert, addHistoryEntry, dispenseArmed, confirmingTaken, onDispenseMedicine]);
+  }, [activeAlert, addHistoryEntry, confirmingTaken, onDispenseMedicine, medicines, triggerDispenseAnimation]);
 
   const handleSkip = useCallback(() => {
     if (!activeAlert) {
@@ -857,27 +917,6 @@ function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDi
                 </div>
               </div>
 
-              <div className="sim-hardware">
-                <div className={`sim-slot ${slotOpen ? "is-open" : ""}`}>Slot</div>
-                <div className={`sim-ready-tray ${slotReady ? "is-ready" : ""}`}>
-                  <span>Ready To Dispense</span>
-                  <div className={`sim-ready-pill ${slotReady ? "is-visible" : ""}`} />
-                </div>
-                <div className="sim-slot-info">
-                  <span>
-                    Current source: {activeDispenseSlot ? `BOX ${activeDispenseSlot}` : "Waiting"}
-                  </span>
-                  <span>
-                    Next queue: {nextDispenseSlot ? `BOX ${nextDispenseSlot}` : "--"}
-                  </span>
-                </div>
-                <div className="sim-dropzone">
-                  <div key={pillDropTick} className={`sim-pill ${slotOpen ? "is-dropping" : ""}`} />
-                </div>
-                <button className="sim-dispense-button" onClick={triggerDispenseAnimation} disabled={!deviceOn || Boolean(activeAlert?.isTest)}>
-                  <Pill size={16} /> Dispense
-                </button>
-              </div>
             </div>
 
             {activeAlert && (
@@ -905,19 +944,23 @@ function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDi
                     <p>
                       Time for <strong>{activeAlert.schedule.medicineName}</strong> ({activeAlert.schedule.dosage}).
                     </p>
-                    <div className="sim-alert__actions">
-                      <button className="sim-action sim-action--snooze" onClick={triggerDispenseAnimation}>
-                        <Pill size={15} /> Dispense From Box
+                    <div className="flex flex-col gap-2 mt-4">
+                      <button 
+                        className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-4 font-bold text-white shadow-lg transition hover:bg-emerald-600 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                        onClick={handleDispenseAndTake} 
+                        disabled={confirmingTaken}
+                      >
+                        <Pill size={20} /> 
+                        {confirmingTaken ? "Dispensing..." : "Dispense & Take"}
                       </button>
-                      <button className="sim-action sim-action--taken" onClick={handleTaken} disabled={!dispenseArmed || confirmingTaken}>
-                        <CheckCircle2 size={15} /> {confirmingTaken ? "Confirming..." : "Confirm Taken"}
-                      </button>
-                      <button className="sim-action sim-action--skip" onClick={handleSkip}>
-                        <XCircle size={15} /> Skip
-                      </button>
-                      <button className="sim-action sim-action--snooze" onClick={handleSnooze}>
-                        <Clock3 size={15} /> Snooze 5m
-                      </button>
+                      <div className="flex gap-2">
+                        <button className="flex-1 sim-action sim-action--skip" onClick={handleSkip}>
+                          <XCircle size={15} /> Skip
+                        </button>
+                        <button className="flex-1 sim-action sim-action--snooze" onClick={handleSnooze}>
+                          <Clock3 size={15} /> Snooze 5m
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -946,11 +989,14 @@ function SmartDispenserSimulator({ dashboardSchedules = [], medicines = [], onDi
                 required
               >
                 <option value="">Select medicine</option>
-                {medicines.map((medicine) => (
-                  <option key={medicine.medicineId} value={medicine.medicineId}>
-                    {medicine.name}
-                  </option>
-                ))}
+                {medicines.map((medicine) => {
+                  const isEmpty = medicine.remainingQuantity <= 0;
+                  return (
+                    <option key={medicine.medicineId} value={medicine.medicineId} disabled={isEmpty}>
+                      {medicine.name} {isEmpty ? "(Empty Slot)" : ""}
+                    </option>
+                  );
+                })}
               </select>
               <select
                 className="input"

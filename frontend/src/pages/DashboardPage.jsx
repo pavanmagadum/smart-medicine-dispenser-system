@@ -124,8 +124,15 @@ export default function DashboardPage() {
   }, [selectedUserId, refreshDashboard]);
 
   const handleDeleteSchedule = useCallback(async (scheduleId) => {
-    await scheduleApi.deleteSchedule(scheduleId);
-    await refreshDashboard();
+    // Optimistic UI update: remove schedule instantly to eliminate UI lag
+    setSchedules((prev) => prev.filter((schedule) => schedule.scheduleId !== scheduleId));
+    
+    try {
+      await scheduleApi.deleteSchedule(scheduleId);
+    } finally {
+      // Refresh in background to ensure sync without blocking the user
+      refreshDashboard();
+    }
   }, [refreshDashboard]);
 
   const handleMarkRead = useCallback(async (notificationId) => {
@@ -190,7 +197,7 @@ export default function DashboardPage() {
           )}
 
           {activeTab === "simulator" && (
-            <SmartDispenserSimulator dashboardSchedules={schedules} medicines={medicines} onDispenseMedicine={handleDispense} />
+            <SmartDispenserSimulator dashboardSchedules={schedules} dashboardLogs={displayLogs} medicines={medicines} onDispenseMedicine={handleDispense} />
           )}
 
           {activeTab === "medicines" && (

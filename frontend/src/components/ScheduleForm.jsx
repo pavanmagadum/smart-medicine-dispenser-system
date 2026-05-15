@@ -73,11 +73,14 @@ function ScheduleForm({ medicines, onSubmit }) {
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         <select className="input" name="medicineId" value={form.medicineId} onChange={handleChange} required>
           <option value="">Select medicine</option>
-          {medicines.map((medicine) => (
-            <option key={medicine.medicineId} value={medicine.medicineId}>
-              {medicine.name}
-            </option>
-          ))}
+          {medicines.map((medicine) => {
+            const isEmpty = medicine.remainingQuantity <= 0;
+            return (
+              <option key={medicine.medicineId} value={medicine.medicineId} disabled={isEmpty}>
+                {medicine.name} {isEmpty ? "(Empty Slot)" : ""}
+              </option>
+            );
+          })}
         </select>
         <div className="flex gap-2">
           <input

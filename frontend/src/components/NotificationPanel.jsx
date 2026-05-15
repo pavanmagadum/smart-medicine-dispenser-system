@@ -21,7 +21,16 @@ function NotificationPanel({ notifications, onMarkRead, markingReadIds = [] }) {
               <div>
                 <p className="text-sm font-semibold text-medical-900">{notification.type}</p>
                 <p className="text-sm text-medical-700">{notification.message}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-medical-600">{notification.status || "unread"}</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-medical-600">{notification.status || "unread"}</p>
+                  <p className="text-xs text-medical-500">
+                    {notification.createdAt ? (
+                      typeof notification.createdAt?.toDate === "function" 
+                        ? notification.createdAt.toDate().toLocaleString() 
+                        : new Date(notification.createdAt).toLocaleString()
+                    ) : "Just now"}
+                  </p>
+                </div>
               </div>
               {notification.status !== "read" && (
                 <button
